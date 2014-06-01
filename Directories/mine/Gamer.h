@@ -2,6 +2,7 @@
 #define __Gamer_h__
 
 #include <io.h>
+#include "mine/Matrix.h"
 
 unsigned char *correct_easy[] = {"usually", "even", "understood", "blank", "Sunday", "dancer", "curves", "futuristic", "noisy", "December", "mischievous"};
 unsigned char *incorrect_easy[] = {"thier", "galaxi", "woory", "erorr", "aquire", "amature", "colum", "ignorence", "mideval", "miniture", "occurence"};
@@ -14,6 +15,8 @@ unsigned char wait_two_seconds = 20;
 	unsigned char player = 1;
 	unsigned char p_i = 0; //player iterator for time
 	unsigned char e_i = 0; //end of round iterator for time
+	unsigned char m_i = 0; //Matrix iterator to slow it down
+	const unsigned char matrix_tick_time = 3;
 	//unsigned char turn = 0;
 	//unsigned char level = 1;
 	unsigned char word_correctness = 0;  //determines is a correctly spelled word shall appear
@@ -27,6 +30,7 @@ unsigned char wait_two_seconds = 20;
 	unsigned char total_score_tens_P1 = 0;
 	unsigned char total_score_P2 = 0;
 	unsigned char total_score_tens_P2 = 0;
+	int matrix_timer = 0;
 //	 unsigned char return_value = 1;
 //	unsigned char random_number = 0;
 	
@@ -69,7 +73,7 @@ TickFct_GAME() {
 	G_State = G_decide;
 	break;
 	
-	case G_decide: //Output Word and Score to Screen
+	case G_decide: //Output Word and Score to Screen //Start timer
 	if (word_correctness) {
 		G_State = G_correct_word;
 	}
@@ -199,6 +203,8 @@ case G_switchplayer:
 		mistake_counter = 0;
 if(player == 1 && p_i == 0)
 {
+	
+	//matrix_timer = Matrix_Tick(-1); //TIMER RESET?
 	//Display p1 total score
 	LCD_ClearScreen();
 	LCD_DisplayString(1, "Player 1: ");
@@ -209,7 +215,8 @@ if(player == 1 && p_i == 0)
 
 }
 else if(player == 2 && p_i == 0)
-{
+{ 
+	//matrix_timer = Matrix_Tick(-1); //TIMER RESET?
 	//Display p2 total score
 	LCD_ClearScreen();
 	LCD_DisplayString(1, "Player 2: ");
@@ -218,6 +225,9 @@ else if(player == 2 && p_i == 0)
 	LCD_Cursor(13);
 	LCD_WriteData(total_score_P2 + '0');
 }
+
+Matrix_Tick(-1);
+
 break;
 
 case G_pickwordchoice:
@@ -275,10 +285,38 @@ if(i < arraysize)
 	i++;
 }
 else{ i = 0; }
+	if(m_i < matrix_tick_time)
+	{
+		m_i++;
+	}		
+	else
+	{
+		m_i = 0;
+	 matrix_timer = Matrix_Tick(matrix_timer);
+	}	 
 break;
+
 case G_correct_word:
+	if(m_i < matrix_tick_time)
+	{
+		m_i++;
+	}
+	else
+	{
+		m_i = 0;
+		matrix_timer = Matrix_Tick(matrix_timer);
+	}
 break;
 case G_incorrect_word:
+	if(m_i < matrix_tick_time)
+	{
+		m_i++;
+	}
+	else
+	{
+		m_i = 0;
+		matrix_timer = Matrix_Tick(matrix_timer);
+	}
 break;
 case G_correct_button:
 	score++;
@@ -290,6 +328,10 @@ case G_switchplayer_message:
 	
 	LCD_ClearScreen();
 	LCD_DisplayString(1, "End of Round");
+	//matrix_timer = -1;
+	Matrix_Tick(-1);
+			column_sel == 0x7F;
+			column_val == 0x01;
 	if(player == 1 && e_i == 0)
 	{
 		if((total_score_P1 + score) < 10)

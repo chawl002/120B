@@ -6,21 +6,15 @@
 #include <stdio.h> 
 #include "mine/timer.h"
 #include "mine/TitleScreen.h"
-//#include "mine/GameStart.h"
 #include "mine/Gamer.h"
 
 unsigned char return_value = 1;
 
-
-
-
-
-
-
 int main(void) {      
                 
-    DDRA = 0x03; PORTA = 0xFC; // Configure port A's 8 pins as inputs      
-    //DDRC = 0xFF; PORTC = 0x00; // Configure port B's 8 pins as outputs     
+    DDRA = 0x03; PORTA = 0xFC;    
+    DDRB = 0xFF; PORTB = 0x00; //selects column to display
+	DDRC = 0xFF; PORTC = 0x00; //displays column pattern
     DDRD = 0xFF; PORTD = 0x00; // LCD control lines    
       
 	LCD_init();   
