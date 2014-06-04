@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "mine/timer.h"
 #include "mine/TitleScreen.h"
-#include "mine/Gamer.h"
+#include "mine/GameLogic.h"
 
 
 
@@ -22,16 +22,15 @@ int main(void) {
 	TimerSet(100);
 	TimerOn();
 	
-	unsigned char Timer_counter_Title = 0;
-	const unsigned char Title_screen_period = 3;
-	
+	unsigned char Timer_counter_Title = 0; //title screen iterator
+	const unsigned char Title_screen_period = 3; //So title screen ticks at a slower rate
 	
 	while(1) {
 		return_value = 1;
 		unsigned char button_P1_start= ~PINA&0x04;
 		if(button_P1_start) //START GAME
 		{
-			LCD_ClearScreen();
+			LCD_ClearScreen(); //clear stuff left over from title screen
 			while(return_value)
 			{
 				TickFct_GAME();
@@ -39,23 +38,25 @@ int main(void) {
 				while (!TimerFlag); // Wait 100ms
 				TimerFlag = 0;
 			}
-		}
-	else{
-		if(!(Timer_counter_Title < Title_screen_period))
-		{
-			LCD_ClearScreen();
-			TickFct_TitleScreen();
-			Timer_counter_Title = 0;
 			
 		}
-	else{Timer_counter_Title++;}
+		else
+		{
+			if(!(Timer_counter_Title < Title_screen_period))
+			{
+				LCD_ClearScreen();
+				TickFct_TitleScreen();
+				Timer_counter_Title = 0;
+				
+			}
+			else{Timer_counter_Title++;}
+		
+		}
+	
+	
+	
+	while (!TimerFlag); // Wait 100ms
+	TimerFlag = 0;
 	
 }
-
-
-
-while (!TimerFlag); // Wait 100ms
-TimerFlag = 0;
-
-    } 
 }
