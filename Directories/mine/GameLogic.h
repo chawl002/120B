@@ -3,6 +3,8 @@
 
 #include <io.h>
 #include "mine/Matrix.h"
+
+////////////////////////////////////////////Constants & Global Variables
 //EASY - 5th grade level words taken from http://www.k12reader.com/fifth-grade-spelling-words/
 const unsigned char *correct_easy[] = {"usually", "even", "understood", "blank", "five", "Sunday", "dancer", "curves", "noisy", "ten", "December", "brilliant", "adapt", "decadent", "fifteen", "glucose", "least", "ears", "uniform", "twenty", "deception", "voice", "problem", "firm", "number", "university", "cover", "poison", "picture", "thirty" };
 //http://www.sightwordsgame.com/spelling/misspelled-words-grade/
@@ -15,22 +17,20 @@ const unsigned char *word_pattern[] = {11, 27, 10, 14, 9, 12, 1, 16, 23, 22, 10,
 	//88 total, used for correct/incorrect array choices
 const unsigned char *word_correct_pattern[] = {0,1,0,0,1,0,0,0,0,1,1,0,0,1,0,1,0,1,1,0,1,1,0,0,0,1,1,0,1,1,0,0,0,1,1,0,1,1,1,1,0,0,1,0,0,0,0,0,0,1,0,1,0,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1,0,0,1,0,0,1,1,0,1,1,0,0,0,1,1,0,0,1,0,0};
 
-const unsigned char arraysize = 30; // the amount of words in in/correct array
+const unsigned char arraysize = 50; // the amount of words in word_pattern array
 const unsigned char amount_rounds =  5; // 3 rounds for each player
 const unsigned char wait_two_seconds = 20; //Timer is currenty 100ms. 100*20 =  2000ms == 2sec
 const unsigned char matrix_tick_time = 3; // Timer for speed of timer for a player. 100ms * 3 = 300ms per dot on matrix 
-int return_value = 0;
-
+int return_value = 0; //returns value to Game.c
 //////////////////////////////////////////////////////////////////////////
 
 
-unsigned char difficulty = 0; //Player Difficulty
-
-//	unsigned char random_number = 0;
 	
-enum G_States { G_GAME_START, G_difficulty, G_switchplayer, G_pickwordchoice, G_output, G_correct_word, G_incorrect_word, G_correct_button, G_incorrect_button, G_switchplayer_message, G_end_game} G_State;
+enum G_States { G_GAME_START, G_difficulty, G_switchplayer, G_pickwordchoice, G_output, G_correct_word, G_incorrect_word, G_correct_button, G_incorrect_button, G_switchplayer_message, G_end_game, G_display_message, G_display_score} G_State;
 
 TickFct_GAME() {
+	//Variables
+//////////////////////////////////////////////////////////////////////////////////
 	//Buttons for Player 1 //
 	unsigned char button_P1_incorrect= ~PINA&0x08;
 	unsigned char button_P1_correct= ~PINA&0x04;
@@ -44,11 +44,10 @@ static unsigned char p_i = 0; //player iterator for time
 static unsigned char e_i = 0; //end of round iterator for time
 static unsigned char m_i = 0; //Matrix iterator to slow it down
 static unsigned char g_i = 0; //end of game message iterator
-
+static unsigned char s_i = 0; //final score iterator
 static unsigned char word_correctness = 0;  //determines is a correctly spelled word shall appear
 static unsigned char word_choice = 0; //chooses a word from an array
-static unsigned char wc_i = 0; //iterators for word choice function
-static unsigned char wc_j = 0;
+static unsigned char wc_j = 0;//iterators for word choice function
 static unsigned char score = 0; //keeps score for that round
 static unsigned char score_tens = 0; //if it goes over 9
 static unsigned char mistake_counter = 0; //counts # of mistakes - every 3 mistakes you lose round early
@@ -56,7 +55,12 @@ static unsigned char total_score_P1 = 0; //Total score for Player 1
 static unsigned char total_score_tens_P1 = 0; //Total score for Player 1
 static unsigned char total_score_P2 = 0; //Total Score for Player 2
 static unsigned char total_score_tens_P2 = 0; //Total Score
+static unsigned char messages = 0;
+static unsigned char difficulty = 0; //Player Difficulty
 static int matrix_timer = 0; //matrix position indicator
+static unsigned char word_i = 0; //iterator for array
+//////////////////////////////////////////////////////////////////////////////////
+
 	switch(G_State) { // Transitions
 	case -1:
 	G_State = G_GAME_START;
@@ -89,9 +93,8 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_switchplayer: //Switches between the two players
 	if(turn > amount_rounds)
 	{
-		LCD_ClearScreen();
-		LCD_DisplayString(1, "End of Game");
-		G_State = G_end_game;
+		messages = 2;
+		G_State = G_display_message;
 	}
 	else if(p_i < wait_two_seconds)  //STAY HERE UNTIL 2 SECOND PASSES
 	{
@@ -110,10 +113,8 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_pickwordchoice: //Choose if the word will be misspelled or not
 		if(stop_timer)
 		{
-			if(turn < amount_rounds)
-			{LCD_ClearScreen();
-			LCD_DisplayString(1, "End of Round");}
-			G_State = G_switchplayer_message;
+			messages = 1;
+			G_State = G_display_message;
 		}
 		else{
 	G_State = G_output;}
@@ -122,10 +123,8 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_output: //Output Word and Score to Screen 
 		if(stop_timer)
 		{
-			if(turn < amount_rounds)
-			{LCD_ClearScreen();
-			LCD_DisplayString(1, "End of Round");}
-			G_State = G_switchplayer_message;
+			messages = 1;
+			G_State = G_display_message;
 		}
 	if (word_correctness) {
 		G_State = G_correct_word;
@@ -138,20 +137,16 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_correct_word: //Wait for button response
 	if(stop_timer)
 	{
-		if(turn < amount_rounds)
-		{LCD_ClearScreen();
-		LCD_DisplayString(1, "End of Round");}
-		G_State = G_switchplayer_message;
+		messages = 1;
+		G_State = G_display_message;
 	}
 	if(player == 1)
 	{
 		if (!button_P1_correct && !button_P1_incorrect) {   //if no buttons pressed, do nothing
 			if(stop_timer)
 			{
-				if(turn < amount_rounds)
-				{LCD_ClearScreen();
-				LCD_DisplayString(1, "End of Round");}
-				G_State = G_switchplayer_message;
+				messages = 1;
+				G_State = G_display_message;
 			}			
 			else{
 			G_State = G_correct_word;}
@@ -171,10 +166,8 @@ static int matrix_timer = 0; //matrix position indicator
 		{   //if no buttons pressed, do nothing
 			if(stop_timer)
 			{			
-				if(turn < amount_rounds)
-				{LCD_ClearScreen();
-				LCD_DisplayString(1, "End of Round");}
-				G_State = G_switchplayer_message;}
+				messages = 1;
+				G_State = G_display_message; }
 		    else{
 			G_State = G_correct_word;}
 		}
@@ -192,10 +185,8 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_incorrect_word:
 		if(stop_timer)
 		{
-			if(turn < amount_rounds)
-			{LCD_ClearScreen();
-			LCD_DisplayString(1, "End of Round");}
-			G_State = G_switchplayer_message;
+			messages = 1;
+			G_State = G_display_message;
 		}
 	if(player == 1)
 	{
@@ -203,10 +194,8 @@ static int matrix_timer = 0; //matrix position indicator
 		{
 			if(stop_timer)
 			{
-				if(turn < amount_rounds)
-				{LCD_ClearScreen();
-				LCD_DisplayString(1, "End of Round");}
-				G_State = G_switchplayer_message;
+				messages = 1;
+				G_State = G_display_message;
 			}
 			else{
 			G_State = G_incorrect_word;}
@@ -226,10 +215,8 @@ static int matrix_timer = 0; //matrix position indicator
 			{
 				if(stop_timer)
 				{
-					if(turn < amount_rounds)
-					{LCD_ClearScreen();
-					LCD_DisplayString(1, "End of Round");}
-					G_State = G_switchplayer_message;
+					messages = 1;
+					G_State = G_display_message;
 				}
 				else{
 				G_State = G_incorrect_word;}
@@ -248,10 +235,8 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_correct_button: //Add 1 to score
 		if(stop_timer)
 		{
-			if(turn < amount_rounds)
-			{LCD_ClearScreen();
-			LCD_DisplayString(1, "End of Round");}
-			G_State = G_switchplayer_message;
+			messages = 1;
+			G_State = G_display_message;
 		}
 	else
 	{
@@ -262,10 +247,8 @@ static int matrix_timer = 0; //matrix position indicator
 	case G_incorrect_button: //Count # of mistakes. if too many, switch player
 		if(stop_timer)
 		{
-			if(turn < amount_rounds)
-			{LCD_ClearScreen();
-			LCD_DisplayString(1, "End of Round");}
-			G_State = G_switchplayer_message;
+			messages = 1;
+			G_State = G_display_message;
 		}
 	if(mistake_counter < 3)
 	{
@@ -273,19 +256,16 @@ static int matrix_timer = 0; //matrix position indicator
 	}		
 	else if(!(mistake_counter < 3))
 	{
-		if(turn < amount_rounds)
-		{LCD_ClearScreen();
-		LCD_DisplayString(1, "End of Round");}
-		G_State = G_switchplayer_message;
+		messages = 1;
+		G_State = G_display_message;
 	}
 	break;
 	
 	case G_switchplayer_message:
 	if(turn > (amount_rounds - 1))
 	{
-		LCD_ClearScreen();
-		LCD_DisplayString(1, "End of Game");
-		G_State = G_end_game;
+		messages = 2;
+		G_State =  G_display_message;
 	}
 	else if(!(e_i < wait_two_seconds)) //swap players and send to player screen
 	{
@@ -315,14 +295,64 @@ static int matrix_timer = 0; //matrix position indicator
 	{
 		G_State = G_end_game;
 	}
-	else// if(return_value == 2)
+	else
 	{
-		return_value = 0;
-		G_State = G_GAME_START;
+		messages = 3;
+		G_State = G_display_message;
 	}
 
 	break;
 	
+	case G_display_message:
+	LCD_ClearScreen();
+	if(messages == 1)
+	{
+		if(turn < amount_rounds)
+		{
+			LCD_ClearScreen();
+			LCD_DisplayString(1, "End of Round");
+			messages = 0;
+		}
+		G_State = G_switchplayer_message;
+	}
+	else if(messages == 2)
+	{
+		LCD_ClearScreen();
+		LCD_DisplayString(1, "End of Game");
+		messages = 0;
+		G_State = G_end_game;
+	}
+	else if(messages == 3)
+	{
+		LCD_ClearScreen();
+		LCD_DisplayString(1, "Player 1: ");
+		LCD_DisplayString(17, "Player 2: ");
+		
+		LCD_Cursor(12);
+		LCD_WriteData(total_score_tens_P1 + '0');
+		LCD_Cursor(13);
+		LCD_WriteData(total_score_P1 + '0');
+		
+		LCD_Cursor(28);
+		LCD_WriteData(total_score_tens_P2 + '0');
+		LCD_Cursor(29);
+		LCD_WriteData(total_score_P2 + '0');
+		messages = 0;
+		G_State = G_display_score;
+	}
+	break;
+	
+	case G_display_score:
+	if(s_i < wait_two_seconds)
+	{
+		G_State = G_display_score;
+	}
+	else
+	{
+		return_value = 0;
+		G_State = G_GAME_START;
+	}
+	break;
 	default:
 	G_State = G_GAME_START;
 	
@@ -340,11 +370,10 @@ case G_GAME_START:
  e_i = 0; //end of round iterator for time
  m_i = 0; //Matrix iterator to slow it down
  g_i = 0; //end of game message iterator
-
+ s_i = 0;
+ word_i = 0; //array iterator
  word_correctness = 0;  //determines is a correctly spelled word shall appear
  word_choice = 0; //chooses a word from an array
- wc_i = 0; //iterators for word choice function
- wc_j = 0;
  score = 0; //keeps score for that round
  score_tens = 0; //if it goes over 9
  mistake_counter = 0; //counts # of mistakes - every 3 mistakes you lose round early
@@ -352,6 +381,7 @@ case G_GAME_START:
  total_score_tens_P1 = 0; //Total score for Player 1
  total_score_P2 = 0; //Total Score for Player 2
  total_score_tens_P2 = 0; //Total Score
+ difficulty = 0; //Player Difficulty
  matrix_timer = 0; //matrix position indicator
 break;
 
@@ -362,8 +392,6 @@ case G_switchplayer:
 		mistake_counter = 0;
 if(player == 1 && p_i == 0)
 {
-	
-	//matrix_timer = Matrix_Tick(-1); //TIMER RESET?
 	//Display p1 total score
 	LCD_ClearScreen();
 	LCD_DisplayString(1, "Player 1: ");
@@ -375,7 +403,6 @@ if(player == 1 && p_i == 0)
 }
 else if(player == 2 && p_i == 0)
 { 
-	//matrix_timer = Matrix_Tick(-1); //TIMER RESET?
 	//Display p2 total score
 	LCD_ClearScreen();
 	LCD_DisplayString(1, "Player 2: ");
@@ -385,17 +412,17 @@ else if(player == 2 && p_i == 0)
 	LCD_WriteData(total_score_P2 + '0');
 }
 
-Matrix_Tick(-1);
+Matrix_Tick(-1); //reset Matrix timer
 
 break;
 
 case G_pickwordchoice:
 	word_correctness = word_correct_pattern[wc_j];
-	if(wc_j < 88)
+	if(wc_j < 88) //because 88 total binary
 	{
 		wc_j++;
 	}
-	else
+	else  //if goes over 88, start over
 	{
 		wc_j = 0;
 	}
@@ -405,7 +432,7 @@ break;
 case G_output:
 LCD_ClearScreen();
 
-word_choice = word_pattern[i];     //"Randomly" generated words array
+word_choice = word_pattern[word_i];     //"Randomly" generated words array
 if(word_correctness && difficulty == 0)
 {
 	LCD_DisplayString(1, correct_easy[word_choice]); //Displays word CORRECT EASY
@@ -446,11 +473,11 @@ if(!(score < 10)) //OUPTPUT VALUES GREATER THAN 9
 	LCD_Cursor(16);
 	LCD_WriteData(score + '0');
 
-if(i < arraysize)
+if(word_i < arraysize)
 {
-	i++;
+	word_i++;
 }
-else{ i = 0; }
+else{ word_i = 0; }
 	if(m_i < matrix_tick_time)
 	{
 		m_i++;
@@ -535,6 +562,16 @@ case G_switchplayer_message:
 		g_i++;
 	}	
 	
+	break;
+	
+	case G_display_message:
+	break;
+	
+	case G_display_score:
+	if(1)
+	{
+		s_i++;
+	}
 	break;
 default: // ADD default behaviour below
 break;

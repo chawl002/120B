@@ -104,7 +104,7 @@ TickFct_TitleScreen() {
 		LCD_ClearScreen();
 		LCD_DisplayString(1, "Start!");
 		 
-      default: // ADD default behaviour below
+      default:
       break;
    } // State actions
 

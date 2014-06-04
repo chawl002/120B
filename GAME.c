@@ -8,14 +8,12 @@
 #include "mine/TitleScreen.h"
 #include "mine/GameLogic.h"
 
-
-
 int main(void) {
 	
 	DDRA = 0x03; PORTA = 0xFC;
-	DDRB = 0xFF; PORTB = 0x00; //selects column to display
-	DDRC = 0xFF; PORTC = 0x00; //displays column pattern
-	DDRD = 0xFF; PORTD = 0x00; // LCD control lines
+	DDRB = 0xFF; PORTB = 0x00; 
+	DDRC = 0xFF; PORTC = 0x00; 
+	DDRD = 0xFF; PORTD = 0x00; 
 	
 	LCD_init();
 	LCD_ClearScreen();
@@ -52,8 +50,6 @@ int main(void) {
 			else{Timer_counter_Title++;}
 		
 		}
-	
-	
 	
 	while (!TimerFlag); // Wait 100ms
 	TimerFlag = 0;
