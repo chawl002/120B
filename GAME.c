@@ -34,7 +34,7 @@ int main(void) {
 			while(return_value)
 			{
 				TickFct_GAME();
-				
+
 				while (!TimerFlag); // Wait 100ms
 				TimerFlag = 0;
 			}

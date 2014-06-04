@@ -16,31 +16,13 @@ const unsigned char *word_pattern[] = {11, 27, 10, 14, 9, 12, 1, 16, 23, 22, 10,
 const unsigned char *word_correct_pattern[] = {0,1,0,0,1,0,0,0,0,1,1,0,0,1,0,1,0,1,1,0,1,1,0,0,0,1,1,0,1,1,0,0,0,1,1,0,1,1,1,1,0,0,1,0,0,0,0,0,0,1,0,1,0,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1,0,0,1,0,0,1,1,0,1,1,0,0,0,1,1,0,0,1,0,0};
 
 const unsigned char arraysize = 30; // the amount of words in in/correct array
-const unsigned char amount_rounds =  1; // 3 rounds for each player
+const unsigned char amount_rounds =  5; // 3 rounds for each player
 const unsigned char wait_two_seconds = 20; //Timer is currenty 100ms. 100*20 =  2000ms == 2sec
 const unsigned char matrix_tick_time = 3; // Timer for speed of timer for a player. 100ms * 3 = 300ms per dot on matrix 
-unsigned char return_value = 1;
+int return_value = 0;
 
 //////////////////////////////////////////////////////////////////////////
-unsigned char turn = 0; //counter for the amount of turns take
-unsigned char player = 1; //determines whose turn it is
-unsigned char p_i = 0; //player iterator for time
-unsigned char e_i = 0; //end of round iterator for time
-unsigned char m_i = 0; //Matrix iterator to slow it down
-unsigned char g_i = 0; //end of game message iterator
 
-unsigned char word_correctness = 0;  //determines is a correctly spelled word shall appear
-unsigned char word_choice = 0; //chooses a word from an array
-unsigned char wc_i = 0; //iterators for word choice function
-unsigned char wc_j = 0;
-unsigned char score = 0; //keeps score for that round
-unsigned char score_tens = 0; //if it goes over 9
-unsigned char mistake_counter = 0; //counts # of mistakes - every 3 mistakes you lose round early
-unsigned char total_score_P1 = 0; //Total score for Player 1
-unsigned char total_score_tens_P1 = 0; //Total score for Player 1
-unsigned char total_score_P2 = 0; //Total Score for Player 2
-unsigned char total_score_tens_P2 = 0; //Total Score
-int matrix_timer = 0; //matrix position indicator
 
 unsigned char difficulty = 0; //Player Difficulty
 
@@ -48,21 +30,41 @@ unsigned char difficulty = 0; //Player Difficulty
 	
 enum G_States { G_GAME_START, G_difficulty, G_switchplayer, G_pickwordchoice, G_output, G_correct_word, G_incorrect_word, G_correct_button, G_incorrect_button, G_switchplayer_message, G_end_game} G_State;
 
-int TickFct_GAME() {
+TickFct_GAME() {
 	//Buttons for Player 1 //
 	unsigned char button_P1_incorrect= ~PINA&0x08;
 	unsigned char button_P1_correct= ~PINA&0x04;
 	//Buttons for player 2//
 	unsigned char button_P2_correct = ~PINA&0x20;
 	unsigned char button_P2_incorrect = ~PINA&0x10;
-	
 			
+static unsigned char turn = 0; //counter for the amount of turns take
+static unsigned char player = 1; //determines whose turn it is
+static unsigned char p_i = 0; //player iterator for time
+static unsigned char e_i = 0; //end of round iterator for time
+static unsigned char m_i = 0; //Matrix iterator to slow it down
+static unsigned char g_i = 0; //end of game message iterator
+
+static unsigned char word_correctness = 0;  //determines is a correctly spelled word shall appear
+static unsigned char word_choice = 0; //chooses a word from an array
+static unsigned char wc_i = 0; //iterators for word choice function
+static unsigned char wc_j = 0;
+static unsigned char score = 0; //keeps score for that round
+static unsigned char score_tens = 0; //if it goes over 9
+static unsigned char mistake_counter = 0; //counts # of mistakes - every 3 mistakes you lose round early
+static unsigned char total_score_P1 = 0; //Total score for Player 1
+static unsigned char total_score_tens_P1 = 0; //Total score for Player 1
+static unsigned char total_score_P2 = 0; //Total Score for Player 2
+static unsigned char total_score_tens_P2 = 0; //Total Score
+static int matrix_timer = 0; //matrix position indicator
 	switch(G_State) { // Transitions
 	case -1:
 	G_State = G_GAME_START;
 	break;
 	case G_GAME_START:  //Starts Game
 	if (1) {
+		LCD_ClearScreen();
+		LCD_DisplayString(1, "Easy or Hard?");
 		G_State = G_difficulty;
 	}
 	break;
@@ -87,6 +89,8 @@ int TickFct_GAME() {
 	case G_switchplayer: //Switches between the two players
 	if(turn > amount_rounds)
 	{
+		LCD_ClearScreen();
+		LCD_DisplayString(1, "End of Game");
 		G_State = G_end_game;
 	}
 	else if(p_i < wait_two_seconds)  //STAY HERE UNTIL 2 SECOND PASSES
@@ -94,7 +98,7 @@ int TickFct_GAME() {
 		p_i++;
 		G_State = G_switchplayer;
 	}		
-	else if(!(p_i < wait_two_seconds)) //WHEN SWITCHING TO GAMEPLAY, SWAP PLAYER FOR NEXT INTERATION
+	else if(!(p_i < wait_two_seconds)) //WHEN SWITCHING TO GAMEPLAY, SWAP PLAYER FOR NEXT ITERATION
 	{
 		p_i = 0;
 			score = 0;
@@ -106,6 +110,9 @@ int TickFct_GAME() {
 	case G_pickwordchoice: //Choose if the word will be misspelled or not
 		if(stop_timer)
 		{
+			if(turn < amount_rounds)
+			{LCD_ClearScreen();
+			LCD_DisplayString(1, "End of Round");}
 			G_State = G_switchplayer_message;
 		}
 		else{
@@ -115,6 +122,9 @@ int TickFct_GAME() {
 	case G_output: //Output Word and Score to Screen 
 		if(stop_timer)
 		{
+			if(turn < amount_rounds)
+			{LCD_ClearScreen();
+			LCD_DisplayString(1, "End of Round");}
 			G_State = G_switchplayer_message;
 		}
 	if (word_correctness) {
@@ -128,6 +138,9 @@ int TickFct_GAME() {
 	case G_correct_word: //Wait for button response
 	if(stop_timer)
 	{
+		if(turn < amount_rounds)
+		{LCD_ClearScreen();
+		LCD_DisplayString(1, "End of Round");}
 		G_State = G_switchplayer_message;
 	}
 	if(player == 1)
@@ -135,6 +148,9 @@ int TickFct_GAME() {
 		if (!button_P1_correct && !button_P1_incorrect) {   //if no buttons pressed, do nothing
 			if(stop_timer)
 			{
+				if(turn < amount_rounds)
+				{LCD_ClearScreen();
+				LCD_DisplayString(1, "End of Round");}
 				G_State = G_switchplayer_message;
 			}			
 			else{
@@ -155,6 +171,9 @@ int TickFct_GAME() {
 		{   //if no buttons pressed, do nothing
 			if(stop_timer)
 			{			
+				if(turn < amount_rounds)
+				{LCD_ClearScreen();
+				LCD_DisplayString(1, "End of Round");}
 				G_State = G_switchplayer_message;}
 		    else{
 			G_State = G_correct_word;}
@@ -173,6 +192,9 @@ int TickFct_GAME() {
 	case G_incorrect_word:
 		if(stop_timer)
 		{
+			if(turn < amount_rounds)
+			{LCD_ClearScreen();
+			LCD_DisplayString(1, "End of Round");}
 			G_State = G_switchplayer_message;
 		}
 	if(player == 1)
@@ -181,6 +203,9 @@ int TickFct_GAME() {
 		{
 			if(stop_timer)
 			{
+				if(turn < amount_rounds)
+				{LCD_ClearScreen();
+				LCD_DisplayString(1, "End of Round");}
 				G_State = G_switchplayer_message;
 			}
 			else{
@@ -201,6 +226,9 @@ int TickFct_GAME() {
 			{
 				if(stop_timer)
 				{
+					if(turn < amount_rounds)
+					{LCD_ClearScreen();
+					LCD_DisplayString(1, "End of Round");}
 					G_State = G_switchplayer_message;
 				}
 				else{
@@ -220,6 +248,9 @@ int TickFct_GAME() {
 	case G_correct_button: //Add 1 to score
 		if(stop_timer)
 		{
+			if(turn < amount_rounds)
+			{LCD_ClearScreen();
+			LCD_DisplayString(1, "End of Round");}
 			G_State = G_switchplayer_message;
 		}
 	else
@@ -231,6 +262,9 @@ int TickFct_GAME() {
 	case G_incorrect_button: //Count # of mistakes. if too many, switch player
 		if(stop_timer)
 		{
+			if(turn < amount_rounds)
+			{LCD_ClearScreen();
+			LCD_DisplayString(1, "End of Round");}
 			G_State = G_switchplayer_message;
 		}
 	if(mistake_counter < 3)
@@ -239,7 +273,9 @@ int TickFct_GAME() {
 	}		
 	else if(!(mistake_counter < 3))
 	{
-
+		if(turn < amount_rounds)
+		{LCD_ClearScreen();
+		LCD_DisplayString(1, "End of Round");}
 		G_State = G_switchplayer_message;
 	}
 	break;
@@ -247,6 +283,8 @@ int TickFct_GAME() {
 	case G_switchplayer_message:
 	if(turn > (amount_rounds - 1))
 	{
+		LCD_ClearScreen();
+		LCD_DisplayString(1, "End of Game");
 		G_State = G_end_game;
 	}
 	else if(!(e_i < wait_two_seconds)) //swap players and send to player screen
@@ -267,6 +305,7 @@ int TickFct_GAME() {
 	else if(e_i < wait_two_seconds) //Wait here for 2 seconds
 	{
 		e_i++;
+
 		G_State = G_switchplayer_message;
 	}
 	break;
@@ -276,10 +315,12 @@ int TickFct_GAME() {
 	{
 		G_State = G_end_game;
 	}
-	else{
+	else// if(return_value == 2)
+	{
 		return_value = 0;
-		return 0;
+		G_State = G_GAME_START;
 	}
+
 	break;
 	
 	default:
@@ -293,15 +334,30 @@ int TickFct_GAME() {
 
 switch(G_State) { // State actions
 case G_GAME_START:
+ turn = 0; //counter for the amount of turns take
+ player = 1; //determines whose turn it is
+ p_i = 0; //player iterator for time
+ e_i = 0; //end of round iterator for time
+ m_i = 0; //Matrix iterator to slow it down
+ g_i = 0; //end of game message iterator
+
+ word_correctness = 0;  //determines is a correctly spelled word shall appear
+ word_choice = 0; //chooses a word from an array
+ wc_i = 0; //iterators for word choice function
+ wc_j = 0;
+ score = 0; //keeps score for that round
+ score_tens = 0; //if it goes over 9
+ mistake_counter = 0; //counts # of mistakes - every 3 mistakes you lose round early
+ total_score_P1 = 0; //Total score for Player 1
+ total_score_tens_P1 = 0; //Total score for Player 1
+ total_score_P2 = 0; //Total Score for Player 2
+ total_score_tens_P2 = 0; //Total Score
+ matrix_timer = 0; //matrix position indicator
 break;
 
 case G_difficulty:
-	if(1)
-	{
-		LCD_ClearScreen();
-		LCD_DisplayString(1, "Easy or Hard?");
-	}
 break;
+
 case G_switchplayer:
 		mistake_counter = 0;
 if(player == 1 && p_i == 0)
@@ -438,11 +494,7 @@ case G_incorrect_button:
 break;
 case G_switchplayer_message:
 	
-	LCD_ClearScreen();
-	if(turn < amount_rounds)
-	{
-		LCD_DisplayString(1, "End of Round");
-	}	
+
 
 	Matrix_Tick(-1);   ///RESET MATRIX TIMER
 			column_sel == 0x7F;
@@ -481,8 +533,6 @@ case G_switchplayer_message:
 	if(1)
 	{
 		g_i++;
-		LCD_ClearScreen();
-		LCD_DisplayString(1, "End of Game");
 	}	
 	
 	break;
